@@ -12,28 +12,49 @@ import {
 
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { Event } from './event.entity';
 
 @Controller('events')
 export class EventsController {
+  private events: Event[] = [];
+
   @Get()
-  findAll() {
-    return { action: 'findAll' };
+  findAll(): Event[] | [] {
+    return this.events;
   }
+
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return { action: 'findOne', id };
+  findOne(@Param('id', ParseIntPipe) id: number): Event {
+    const event = this.events.find((item) => item.id === id);
+    return event;
   }
+
   @Post()
   create(@Body() body: CreateEventDto) {
-    return { action: 'create', body };
+    const event = {
+      ...body,
+      when: new Date(body.when),
+      id: this.events.length++,
+    };
+    this.events.push(event);
+    return event;
   }
+
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateEventDto) {
-    return { action: 'patch', id, body };
+    const index = this.events.findIndex((item) => item.id == id);
+    const updatedEvent = {
+      ...this.events[index],
+      ...body,
+      when: body.when ? new Date(body.when) : this.events[index].when,
+    };
+    this.events[index] = updatedEvent;
+    return this.events[index];
   }
+
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id', ParseIntPipe) id: number) {
-    return { action: 'remove', id };
+    this.events = this.events.filter((item) => item.id !== id);
   }
 }
