@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - 3309:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  postgres:
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - 5435:5432
+    volumes:
+      - data-postgres:/data/postgres
+      - var-lib-postgres-data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+
+volumes:
+  mysql-data:
+  data-postgres:
+  var-lib-postgres-data:
