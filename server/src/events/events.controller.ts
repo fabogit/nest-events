@@ -13,48 +13,75 @@ import {
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Event } from './event.entity';
+import { Like, MoreThan, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Controller('events')
 export class EventsController {
-  private events: Event[] = [];
+  constructor(
+    @InjectRepository(Event) private readonly repository: Repository<Event>,
+  ) {}
 
   @Get()
-  findAll(): Event[] | [] {
-    return this.events;
+  async findAll() {
+    const events = await this.repository.find();
+    return events;
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Event {
-    const event = this.events.find((item) => item.id === id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const event = await this.repository.findOneBy({ id });
     return event;
   }
 
   @Post()
-  create(@Body() body: CreateEventDto) {
-    const event = {
+  async create(@Body() body: CreateEventDto) {
+    const newEventEntity = await this.repository.create({
       ...body,
       when: new Date(body.when),
-      id: this.events.length++,
-    };
-    this.events.push(event);
+    });
+    const event = await this.repository.insert(newEventEntity);
     return event;
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateEventDto) {
-    const index = this.events.findIndex((item) => item.id == id);
-    const updatedEvent = {
-      ...this.events[index],
-      ...body,
-      when: body.when ? new Date(body.when) : this.events[index].when,
-    };
-    this.events[index] = updatedEvent;
-    return this.events[index];
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateEventDto,
+  ) {
+    const eventOld = await this.repository.findOneBy({ id });
+
+    const updatedEvent = await this.repository.save(
+      {
+        ...eventOld,
+        ...body,
+        when: body.when ? new Date(body.when) : eventOld.when,
+      },
+      {},
+    );
+
+    return updatedEvent;
   }
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    this.events = this.events.filter((item) => item.id !== id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const event = await this.repository.findOneBy({ id });
+    await this.repository.remove(event);
+  }
+
+  @Get('sql/test')
+  async sql() {
+    return this.repository.find({
+      select: ['id', 'when'],
+      where: [
+        { id: MoreThan(3), when: MoreThan(new Date('2021-02-12')) },
+        { description: Like('%meet%') },
+      ],
+      take: 2,
+      order: {
+        id: 'DESC',
+      },
+    });
   }
 }
