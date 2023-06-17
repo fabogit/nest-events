@@ -38,7 +38,7 @@ export class EventsController {
   async create(@Body() body: CreateEventDto) {
     const newEventEntity = await this.repository.create({
       ...body,
-      when: new Date(body.when),
+      when: body.when ? new Date(body.when) : new Date(),
     });
     const event = await this.repository.insert(newEventEntity);
     return event;
